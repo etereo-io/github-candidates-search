@@ -1,0 +1,3 @@
+export const SET_USER_LIST = 'SET_USER_LIST'
+export const SET_LOADING = 'SET_LOADING'
+export const SET_SELECTED_USER = 'SET_SELECTED_USER'
