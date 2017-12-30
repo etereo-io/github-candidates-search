@@ -32,7 +32,11 @@
           </div>
       </li>
     </ul>
-    <spinner v-if="loading"></spinner>
+    <div v-if="loading">
+      <p>Fetching users: {{fetchedUsers}}</p>
+      <p>Fetching events: {{fetchedEvents}}</p>
+      <spinner></spinner>
+    </div>
     <button @click="GET_USER_LIST">Get user list</button>
   </div>
 </template>
@@ -53,6 +57,8 @@ export default {
     ...mapGetters({
       userList: 'USER_LIST',
       loading: 'LOADING',
+      fetchedEvents: 'FETCHED_EVENTS',
+      fetchedUsers: 'FETCHED_USERS',
     }),
     filteredByLogin() {
       return this.userList.sort((a, b) => a.login - b.login)

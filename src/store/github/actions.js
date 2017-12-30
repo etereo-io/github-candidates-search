@@ -1,27 +1,59 @@
 import axios from 'axios'
-
+import store from '../../store'
 import { USERS_URL, TOKEN, APIURL } from './api-constants'
 import { countItems, buildQueryString, mergeUsersAndEvents } from './helpers'
 
 import * as types from '../mutation-types'
 
 let userList = []
+let totalEvents = []
 
-export function fetchUserEvents(url) {
+function getTotalPages(linkHeader) {
+  if (typeof linkHeader === 'undefined') {
+    return 1
+  }
+  const link = linkHeader.split(',').find(i => i.indexOf('last'))
+  return link.substring(link.lastIndexOf('page=') + 5, link.lastIndexOf('>'))
+}
+
+function getNextPage(linkHeader) {
+  if (typeof linkHeader === 'undefined') {
+    return 1
+  }
+  const link = linkHeader.split(',').find(i => i.indexOf('next'))
+  return link.substring(link.lastIndexOf('page=') + 5, link.lastIndexOf('>'))
+}
+
+export function fetchUserEvents(url, page = 1) {
   const headers = { Authorization: TOKEN }
-  const options = { headers }
-
+  const params = { page }
+  const options = { headers, params }
 
   return axios.get(url, options)
     .then((events) => {
-      const eventsData = {
-        login: events.data.length > 0 ? events.data[0].actor.login : null,
-        creates: countItems(events.data, 'CreateEvent'),
-        pushes: countItems(events.data, 'PushEvent'),
-        pullRequests: countItems(events.data, 'PullRequestEvent'),
-        issues: countItems(events.data, 'IssuesEvent'),
-        comments: countItems(events.data, 'IssueCommentEvent'),
+      store.commit(types.USER_EVENT_RECEIVED)
+      events.data.forEach((item) => {
+        totalEvents.push(item)
+      })
+
+      if (events.headers.link) {
+        const totalPages = getTotalPages(events.headers.link) > 6 ? 6 :
+        getTotalPages(events.headers.link)
+        if (params.page <= totalPages) {
+          return fetchUserEvents(url, getNextPage(events.headers.link))
+        }
       }
+
+      const eventsData = {
+        login: totalEvents.length > 0 ? totalEvents[0].actor.login : null,
+        creates: countItems(totalEvents, 'CreateEvent'),
+        pushes: countItems(totalEvents, 'PushEvent'),
+        pullRequests: countItems(totalEvents, 'PullRequestEvent'),
+        issues: countItems(totalEvents, 'IssuesEvent'),
+        comments: countItems(totalEvents, 'IssueCommentEvent'),
+      }
+
+      totalEvents = []
 
       return eventsData
     })
@@ -29,7 +61,7 @@ export function fetchUserEvents(url) {
 
 function fetchAllUserEvents(users) {
   const eventsUrls = users.map(item => `${APIURL}/users/${item.login}/events`)
-  return Promise.all(eventsUrls.map(fetchUserEvents))
+  return Promise.all(eventsUrls.map(i => fetchUserEvents(i, 1)))
 }
 
 function fetchPages(page = 1) {
@@ -41,12 +73,11 @@ function fetchPages(page = 1) {
   return axios.get(url, options)
     .then((res) => {
       res.data.items.forEach((user) => {
-        userList.push(user)
+        store.commit(types.USER_FETCHED)
+        userList.push({ login: user.login, html_url: user.html_url })
       })
-      const link = res.headers.link.split(',')[1]
-      const lastPage = link.substring(link.lastIndexOf('page=') + 5, link.lastIndexOf('>'))
-      if (params.page < lastPage) {
-        return fetchPages(page + 1)
+      if (params.page <= getTotalPages(res.headers.link) && params.page <= 10) {
+        return fetchPages(getNextPage(res.headers.link))
       }
       return fetchAllUserEvents(userList)
     })
@@ -54,6 +85,7 @@ function fetchPages(page = 1) {
 
 function GET_USER_LIST({ commit }) {
   userList = []
+  totalEvents = []
   commit(types.SET_LOADING, { loading: true })
   return fetchPages()
     .then((events) => {

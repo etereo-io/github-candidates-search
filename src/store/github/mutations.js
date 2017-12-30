@@ -11,6 +11,14 @@ const mutations = {
     githubState.loading = loading
   },
 
+  [types.USER_EVENT_RECEIVED](state) {
+    githubState.fetchedEvents = state.fetchedEvents + 1
+  },
+
+  [types.USER_FETCHED](state) {
+    githubState.fetchedUsers = state.fetchedUsers + 1
+  },
+
   [types.SET_SELECTED_USER](state, data) {
     console.log('foo', data)
   },
