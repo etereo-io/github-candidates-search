@@ -2,12 +2,16 @@
   <div class="hello">
     <h1>Usuarios de github en Madrid</h1>
     <div class="table-head">
+      <div class="index">Posición</div>
       <div @click="sortBy('name')">Usuario</div>
       <div @click="sortBy('contributions')">Contributions</div>
     </div>
-    <ul>
-      <li v-for="user in userList">
+    <ol>
+      <li v-for="(user, index) in userList">
           <div class="table-body">
+            <div class="index">
+              {{++index}}
+            </div>
             <div>
             <a :href="`https://github.com/${user.login}`" target="_blank">{{user.login}}</a>
             </div>
@@ -16,11 +20,9 @@
             </div>
           </div>
       </li>
-    </ul>
-    <div v-if="loading">
-      <p>Fetching users: {{fetchedUsers}}</p>
-      <p>Fetching events: {{fetchedEvents}}</p>
-      <spinner></spinner>
+    </ol>
+    <div>
+      <spinner v-if="loading"></spinner>
     </div>
     <button @click="GET_USER_LIST">Get user list</button>
   </div>
@@ -42,8 +44,6 @@ export default {
     ...mapGetters({
       userList: 'USER_LIST',
       loading: 'LOADING',
-      fetchedEvents: 'FETCHED_EVENTS',
-      fetchedUsers: 'FETCHED_USERS',
     }),
     filteredByName() {
       return this.userList.sort((a, b) => a.login - b.login)
@@ -75,13 +75,16 @@ export default {
 }
 
 .table-head > div, .table-body > div {
-  flex: 1
+  flex: 1;
 }
 
+.index {
+  max-width: 100px;
+}
 h1, h2 {
   font-weight: normal;
 }
-ul {
+ol {
   list-style-type: none;
   padding: 0;
 }
