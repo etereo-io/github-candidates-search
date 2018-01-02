@@ -92,7 +92,7 @@ function GET_USER_LIST({ commit }) {
   userList = []
   totalEvents = []
   commit(types.SET_LOADING, { loading: true })
-  return axios.get('/src/assets/candidates.json')
+  return axios.get('http://45.32.179.64:3000/candidates')
     .then((res) => {
       commit(types.SET_USER_LIST, { userList: res.data })
     })
